@@ -85,7 +85,7 @@ int main(int argc, char *argv[]) {
   /* initialize the matrix */
   for (i = 0; i < size; i++) {
 	  for (j = 0; j < size; j++) {
-          matrix[i][j] = rand()%99;
+          matrix[i][j] = rand()%100;
 	  }
   }
 
