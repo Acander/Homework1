@@ -21,8 +21,6 @@
 #define MAXSIZE 10000  /* maximum matrix size */
 #define MAXWORKERS 10   /* maximum number of workers */
 
-pthread_mutex_t barrier;  /* mutex lock for the barrier */
-pthread_cond_t go;        /* condition variable for leaving */
 int numWorkers;           /* number of workers */
 int numArrived = 0;       /* number who have arrived */
 
@@ -96,16 +94,14 @@ int main(int argc, char *argv[]) {
   for (i = 0; i < numWorkers; i++)
     pthread_join(workerid[i], NULL);
 
-
-
-  /* get end time */
+    /* get end time */
   end_time = read_timer();
   /* print results */
-  printf("The total is %d\n", total);
-  printf("The maximum value is %d\n", maxValue);
-  printf("Index: row %d, column %d\n", maxi, maxj);
-  printf("The minimum value is %d\n", minValue);
-  printf("Index row %d, column %d\n", mini, minj);
+  printf("The total is %d\n", globalSum);
+  printf("The maximum value is %d\n", globalMax);
+  printf("Index: row %d, column %d\n", globalMaxi, globalMaxj);
+  printf("The minimum value is %d\n", globalMin);
+  printf("Index row %d, column %d\n", globalMini, globalMinj);
   printf("The execution time is %g sec\n", end_time - start_time);
 }
 
@@ -146,16 +142,26 @@ void *Worker(void *arg) {
       }
   }
     pthread_mutex_lock(&sumLock);
-    globalSum += total;
+      globalSum += total;
     pthread_mutex_unlock(&sumLock);
-    if (maxValue < maxValues[i]){
-      maxValue = maxValues[i];
-      maxi = maxIndexesi[i];
-      maxj = maxIndexesj[i];
+
+    if (maxValue > globalMax) {
+      pthread_mutex_lock(&maxLock);
+        //if (maxValue > globalMax){
+          globalMax = maxValue;
+          globalMaxi = maxi;
+          globalMaxj = maxj;
+        //}
+      pthread_mutex_unlock(&maxLock);
     }
-    if (minValue > minValues[i]){
-      minValue = minValues[i];
-      mini = minIndexesi[i];
-      minj = minIndexesj[i];
+
+    if (minValue < globalMin) {
+      pthread_mutex_lock(&minLock);
+        //if (minValue < globalMin){
+          globalMin = maxValue;
+          globalMini = mini;
+          globalMinj = minj;
+        //}
+      pthread_mutex_unlock(&minLock);
     }
 }
