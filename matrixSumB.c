@@ -75,6 +75,9 @@ int main(int argc, char *argv[]) {
           matrix[i][j] = rand()%1000;
 	  }
   }
+  /*initialize the global variables*/
+  globalMin = matrix[0][0];
+  globalMax = matrix[0][0];
 
   /* print the matrix */
 #ifdef DEBUG
@@ -101,7 +104,7 @@ int main(int argc, char *argv[]) {
   printf("The maximum value is %d\n", globalMax);
   printf("Index: row %d, column %d\n", globalMaxi, globalMaxj);
   printf("The minimum value is %d\n", globalMin);
-  printf("Index row %d, column %d\n", globalMini, globalMinj);
+  printf("Index: row %d, column %d\n", globalMini, globalMinj);
   printf("The execution time is %g sec\n", end_time - start_time);
 }
 
@@ -155,13 +158,14 @@ void *Worker(void *arg) {
       pthread_mutex_unlock(&maxLock);
     }
 
-    if (minValue < globalMin) {
-      pthread_mutex_lock(&minLock);
-        //if (minValue < globalMin){
-          globalMin = minValue;
-          globalMini = mini;
-          globalMinj = minj;
-        //}
-      pthread_mutex_unlock(&minLock);
+      if (minValue < globalMin) {
+        printf("Printing shit now\n");
+        pthread_mutex_lock(&minLock);
+          //if (minValue < globalMin){
+            globalMin = minValue;
+            globalMini = mini;
+            globalMinj = minj;
+          //}
+        pthread_mutex_unlock(&minLock);
     }
 }
