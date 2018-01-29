@@ -71,6 +71,10 @@ int main(int argc, char *argv[]) {
   pthread_attr_init(&attr);
   pthread_attr_setscope(&attr, PTHREAD_SCOPE_SYSTEM);
 
+  /* initialize mutex and condition variable */
+  pthread_mutex_init(&barrier, NULL);
+  pthread_cond_init(&go, NULL);
+
   /* read command line args if any */
   size = (argc > 1)? atoi(argv[1]) : MAXSIZE;
   numWorkers = (argc > 2)? atoi(argv[2]) : MAXWORKERS;
