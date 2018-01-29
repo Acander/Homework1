@@ -58,8 +58,8 @@ int main(int argc, char *argv[]) {
   pthread_attr_setscope(&attr, PTHREAD_SCOPE_SYSTEM);
 
   /*initialize all mutexs*/
-  pthread_mutes_init(&sumLock, NULL);
-  pthread_mutes_init(&maxLock, NULL);
+  pthread_mutex_init(&sumLock, NULL);
+  pthread_mutex_init(&maxLock, NULL);
   pthread_mutex_init(&minLock, NULL);
 
   /* read command line args if any */
