@@ -72,7 +72,7 @@ int main(int argc, char *argv[]) {
   /* initialize the matrix */
   for (i = 0; i < size; i++) {
 	  for (j = 0; j < size; j++) {
-          matrix[i][j] = rand()%100;
+          matrix[i][j] = rand()%1000;
 	  }
   }
 
@@ -147,18 +147,18 @@ void *Worker(void *arg) {
 
     if (maxValue > globalMax) {
       pthread_mutex_lock(&maxLock);
-        //if (maxValue > globalMax){
+      //  if (maxValue > globalMax){
           globalMax = maxValue;
           globalMaxi = maxi;
           globalMaxj = maxj;
-        //}
+      //  }
       pthread_mutex_unlock(&maxLock);
     }
 
     if (minValue < globalMin) {
       pthread_mutex_lock(&minLock);
         //if (minValue < globalMin){
-          globalMin = maxValue;
+          globalMin = minValue;
           globalMini = mini;
           globalMinj = minj;
         //}
