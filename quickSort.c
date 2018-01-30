@@ -18,16 +18,13 @@
 #include <stdbool.h>
 #include <time.h>
 #include <sys/time.h>
-#define MAXWORKERS 10   /* maximum number of workers */
+#define MAXELEMENTS 50
 
-int numWorkers;           /* number of workers */
-#define MAXELEMENTS = 50;
-
-struct array {
-  int a*;
+typedef struct {
+  int* a;
   int first;
   int last;
-}
+} structArray;
 
 /* timer */
 double read_timer() {
@@ -45,24 +42,26 @@ double read_timer() {
 
 double start_time, end_time; /* start and end times */
 int arrayOfElements[MAXELEMENTS];
+pthread_mutex_t lock;
 
-void *quickSort(void *);
+void* quickSort(void *);
 
 /* read command line, initialize, and create threads */
 int main(int argc, char *argv[]) {
   long l; /* use long in case of a 64-bit system */
   int i;
-  struct array list;
+  structArray list;
 
-  long l = 0;
-  for(i = 0; i < n; i++){
-    arrayOfElements[i] = rand(1, 1000);
+  l = MAXELEMENTS;
+
+  for(i = 0; i < l; i++){
+    arrayOfElements[i] = rand()%1000;
   }
 
   #ifdef DEBUG
     printf("initial array/vector: \n");
     printf("[");
-    for(i = 0; i < MAXELEMENTS; i++){
+    for(i = 0; i < l; i++){
       printf("%d, ", arrayOfElements[i]);
     }
     printf("]");
@@ -73,13 +72,16 @@ int main(int argc, char *argv[]) {
   list.first = 0;
   list.a = &arrayOfElements[0];
 
+  pthread_mutex_init(&lock, NULL);
+
   start_time = read_timer();
-  qucikSort(list);
+  printf("Quicksort\n");
+  quickSort((void*) &list);
   end_time = read_timer();
   #ifdef DEBUG
     printf("sorted array/vector: \n");
     printf("[");
-    for(i = 0; i < MAXELEMENTS; i++){
+    for(i = 0; i < l; i++){
       printf("%d, ", arrayOfElements[i]);
     }
     printf("]");
@@ -87,25 +89,27 @@ int main(int argc, char *argv[]) {
   printf("The execution time is %g sec\n", end_time - start_time);
 }
 
-void *quickSort(void *array) {
-  struct array lArray, rArray;
+void * quickSort(void *array) {
+  structArray lArray, rArray;
   pthread_t ltid;
-  int pivot, i_pivot, first, last, left, temp;
+  int pivot, i_pivot, first, last, right, left, temp, *a;
 
-  first = ((struct *) array)->first;
-  last = ((struct *)) array)->last;
-  a = ((struct *)) array)->a; //Copy of Array.
+  first = ((structArray *) array)->first;
+  last = ((structArray *) array)->last;
+  a = ((structArray *) array)->a; //Copy of Array.
 
   if (first >= last) {
     return;
   }
 
   i_pivot = (first + last)/2;
+  pthread_mutex_lock(&lock);
   pivot = arrayOfElements[i_pivot];
+  pthread_mutex_unlock(&lock);
   left = first;
   right = last;
   while (left <= right) {
-    if (pivot < arrayOfElements[left]) {
+    if (pivot < a[left]) {
       temp = a[left];
       a[left] = a[right];
       a[right] = temp;
@@ -119,19 +123,22 @@ void *quickSort(void *array) {
     }
 
   //Place the pivot in its correct place (in the global array)
+  pthread_mutex_lock(&lock);
   temp = arrayOfElements[right];
   arrayOfElements[right] = pivot;
   arrayOfElements[i_pivot] = temp;
+  pthread_mutex_unlock(&lock);
 
   //Prepare the two sub-lists
   lArray.a = a;
-  lArray.first = right + 1;
-  lArray.last = last;
+  lArray.first = first;
+  lArray.last = right-1;
   rArray.a = a;
-  rArray.first = first;
-  rArray.last = right-1;
-  pthread_create(&ltid, NULL, quickSort, (void *) lArray);
-  quickSort(rArray);
+  rArray.first = right + 1;
+  rArray.last = last;
+  printf("New Thread\n");
+  pthread_create(&ltid, NULL, quickSort, (void *) &lArray);
+  quickSort((void *) &rArray);
   pthread_join(ltid, NULL);
 
   }
