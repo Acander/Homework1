@@ -21,22 +21,8 @@
 #define MAXSIZE 10000  /* maximum matrix size */
 #define MAXWORKERS 10   /* maximum number of workers */
 
-pthread_mutex_t barrier;  /* mutex lock for the barrier */
-pthread_cond_t go;        /* condition variable for leaving */
 int numWorkers;           /* number of workers */
 int numArrived = 0;       /* number who have arrived */
-
-/* a reusable counter barrier */
-void Barrier() {
-  pthread_mutex_lock(&barrier);
-  numArrived++;
-  if (numArrived == numWorkers) {
-    numArrived = 0;
-    pthread_cond_broadcast(&go);
-  } else
-    pthread_cond_wait(&go, &barrier);
-  pthread_mutex_unlock(&barrier);
-}
 
 /* timer */
 double read_timer() {
@@ -53,9 +39,11 @@ double read_timer() {
 }
 
 double start_time, end_time; /* start and end times */
-int size, stripSize;  /* assume size is multiple of numWorkers */
-int sums[MAXWORKERS]; /* partial sums */
+int size;
+pthread_mutex_t sumLock, maxLock, minLock, bagLock;
+int globalSum, globalMax, globalMaxi, globalMaxj, globalMin, globalMini, globalMinj;
 int matrix[MAXSIZE][MAXSIZE]; /* matrix */
+int bagOfTasks;
 
 void *Worker(void *);
 
@@ -70,16 +58,17 @@ int main(int argc, char *argv[]) {
   pthread_attr_init(&attr);
   pthread_attr_setscope(&attr, PTHREAD_SCOPE_SYSTEM);
 
-  /* initialize mutex and condition variable */
-  pthread_mutex_init(&barrier, NULL);
-  pthread_cond_init(&go, NULL);
+  /*initialize all mutexs*/
+  pthread_mutex_init(&sumLock, NULL);
+  pthread_mutex_init(&maxLock, NULL);
+  pthread_mutex_init(&minLock, NULL);
+  pthread_mutex_init(&bagLock, NULL);
 
   /* read command line args if any */
   size = (argc > 1)? atoi(argv[1]) : MAXSIZE;
   numWorkers = (argc > 2)? atoi(argv[2]) : MAXWORKERS;
   if (size > MAXSIZE) size = MAXSIZE;
   if (numWorkers > MAXWORKERS) numWorkers = MAXWORKERS;
-  stripSize = size/numWorkers;
 
   /* initialize the matrix */
   for (i = 0; i < size; i++) {
@@ -87,6 +76,10 @@ int main(int argc, char *argv[]) {
           matrix[i][j] = rand()%1000;
 	  }
   }
+  /*initialize the global variables*/
+  globalMin = matrix[0][0];
+  globalMax = matrix[0][0];
+  bagOfTasks = 0;
 
   /* print the matrix */
 #ifdef DEBUG
@@ -103,38 +96,83 @@ int main(int argc, char *argv[]) {
   start_time = read_timer();
   for (l = 0; l < numWorkers; l++)
     pthread_create(&workerid[l], &attr, Worker, (void *) l);
-  pthread_exit(NULL);
+  for (i = 0; i < numWorkers; i++)
+    pthread_join(workerid[i], NULL);
+
+    /* get end time */
+  end_time = read_timer();
+  /* print results */
+  printf("The total is %d\n", globalSum);
+  printf("The maximum value is %d\n", globalMax);
+  printf("Index: row %d, column %d\n", globalMaxi, globalMaxj);
+  printf("The minimum value is %d\n", globalMin);
+  printf("Index: row %d, column %d\n", globalMini, globalMinj);
+  printf("The execution time is %g sec\n", end_time - start_time);
 }
 
 /* Each worker sums the values in one strip of the matrix.
    After a barrier, worker(0) computes and prints the total */
 void *Worker(void *arg) {
   long myid = (long) arg;
-  int total, i, j, first, last;
+  int total, i, j, first, last, maxValue, maxi, maxj, minValue, mini, minj, task;
+  bool done = false;
 
 #ifdef DEBUG
   printf("worker %d (pthread id %d) has started\n", myid, pthread_self());
 #endif
 
-  /* determine first and last rows of my strip */
-  first = myid*stripSize;
-  last = (myid == numWorkers - 1) ? (size - 1) : (first + stripSize - 1);
-
-  /* sum values in my strip */
   total = 0;
-  for (i = first; i <= last; i++)
-    for (j = 0; j < size; j++)
-      total += matrix[i][j];
-  sums[myid] = total;
-  Barrier();
-  if (myid == 0) {
-    total = 0;
-    for (i = 0; i < numWorkers; i++)
-      total += sums[i];
-    /* get end time */
-    end_time = read_timer();
-    /* print results */
-    printf("The total is %d\n", total);
-    printf("The execution time is %g sec\n", end_time - start_time);
+  maxValue = matrix[0][0];
+  maxi = 0;
+  maxj = 0;
+  minValue = matrix[0][0];
+  mini = 0;
+  minj = 0;
+
+  while (!done) {
+    pthread_mutex_lock(&bagLock);
+      task = bagOfTasks++;
+    pthread_mutex_unlock(&bagLock);
+    if (task < size) done = true;
+
+    for (j = 0; j < size; j++){
+      total += matrix[task][j];
+      if (maxValue < matrix[task][j]){
+        maxValue = matrix[task][j];
+        maxi = task;
+        maxj = j;
+      }
+      if (minValue > matrix[task][j]){
+        minValue = matrix[task][j];
+        mini = task;
+        minj = j;
+      }
+    }
   }
+
+  pthread_mutex_lock(&sumLock);
+  globalSum += total;
+  pthread_mutex_unlock(&sumLock);
+
+  if (maxValue > globalMax) {
+    pthread_mutex_lock(&maxLock);
+      if (maxValue > globalMax){
+        globalMax = maxValue;
+        globalMaxi = maxi;
+        globalMaxj = maxj;
+      }
+      pthread_mutex_unlock(&maxLock);
+      }
+
+  if (minValue < globalMin) {
+    printf("Printing shit now\n");
+    pthread_mutex_lock(&minLock);
+    if (minValue < globalMin){
+      globalMin = minValue;
+      globalMini = mini;
+      globalMinj = minj;
+    }
+    pthread_mutex_unlock(&minLock);
+  }
+
 }

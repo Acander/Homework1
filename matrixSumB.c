@@ -150,22 +150,22 @@ void *Worker(void *arg) {
 
     if (maxValue > globalMax) {
       pthread_mutex_lock(&maxLock);
-      //  if (maxValue > globalMax){
+      if (maxValue > globalMax){
           globalMax = maxValue;
           globalMaxi = maxi;
           globalMaxj = maxj;
-      //  }
+      }
       pthread_mutex_unlock(&maxLock);
     }
 
       if (minValue < globalMin) {
         printf("Printing shit now\n");
         pthread_mutex_lock(&minLock);
-          //if (minValue < globalMin){
+        if (minValue < globalMin){
             globalMin = minValue;
             globalMini = mini;
             globalMinj = minj;
-          //}
+        }
         pthread_mutex_unlock(&minLock);
     }
 }
