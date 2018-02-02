@@ -108,7 +108,6 @@ void* quickSort(void *array) {
 
   i_pivot = (first + last)/2;
   pivot = arrayOfElements[i_pivot]; //Get pivot element from the global array
-
   //quickSort
   left = first;
   right = last;
