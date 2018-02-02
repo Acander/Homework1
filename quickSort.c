@@ -20,6 +20,8 @@
 #include <sys/time.h>
 #define MAXELEMENTS 200
 
+/* Define a struct model to define what data will be be
+transmitted between threads and recursive function calls */
 typedef struct {
   int* a;
   int first;
@@ -41,9 +43,9 @@ double read_timer() {
 }
 
 double start_time, end_time; /* start and end times */
-int arrayOfElements[MAXELEMENTS];
-int count;
-pthread_mutex_t lock, thready;
+int arrayOfElements[MAXELEMENTS]; /* Array to sort */
+int count; /* Counter for the number of Threads created */
+pthread_mutex_t thready; /* Locks for count */
 
 void* quickSort(void *);
 
@@ -53,7 +55,7 @@ int main(int argc, char *argv[]) {
   int i;
   structArray list;
 
-  l = MAXELEMENTS;
+  l = MAXELEMENTS; /* Set the number of elements in the array */
   count = 0;
 
   for(i = 0; i < l; i++){
@@ -71,13 +73,13 @@ int main(int argc, char *argv[]) {
 
   list.last = l - 1;
   list.first = 0;
-  list.a = &arrayOfElements[0];
+  list.a = &arrayOfElements[0]; //First element in the array, first in the memmory
 
-  pthread_mutex_init(&lock, NULL);
+  /* Instantiate mutes/locks */
   pthread_mutex_init(&thready, NULL);
 
   start_time = read_timer();
-  quickSort((void*) &list);
+  quickSort((void*) &list); /* Sort array */
   end_time = read_timer();
   #ifdef DEBUG
     printf("\nSorted array: \n");
@@ -91,29 +93,30 @@ int main(int argc, char *argv[]) {
 }
 
 void* quickSort(void *array) {
-  structArray lArray, rArray;
-  pthread_t ltid;
+  structArray lArray, rArray; /* Two structs for a the two splits*/
+  pthread_t ltid; /* New thread for sorting one split */
   int pivot, i_pivot, first, last, right, left, temp, *a;
 
-  first = ((structArray *) array)->first;
-  last = ((structArray *) array)->last;
+  first = ((structArray *) array)->first; //First element
+  last = ((structArray *) array)->last; //First element
   a = ((structArray *) array)->a; //Copy of Array.
 
+  /* Base case fo the reccursive */
   if (first >= last) {
     return;
   }
 
   i_pivot = (first + last)/2;
-  pthread_mutex_lock(&lock);
-  pivot = arrayOfElements[i_pivot];
-  pthread_mutex_unlock(&lock);
+  pivot = arrayOfElements[i_pivot]; //Get pivot element from the global array
+
+  //quickSort
   left = first;
   right = last;
   while (left <= right) {
     if (pivot < a[left]) {
-      temp = a[left];
-      a[left] = a[right];
-      a[right] = temp;
+      temp = arrayOfElements[left];
+      arrayOfElements[left] = a[right];
+      arrayOfElements[right] = temp;
       if (right == i_pivot) {
         i_pivot = left;
       }
@@ -124,26 +127,25 @@ void* quickSort(void *array) {
     }
   }
 
-  //Place the pivot in its correct place (in the global array)
-  pthread_mutex_lock(&lock);
+  /*Place the pivot in its correct place (in the global array),
+  no locks because every thread works in their own splits */
   temp = arrayOfElements[right];
   arrayOfElements[right] = pivot;
   arrayOfElements[i_pivot] = temp;
-  pthread_mutex_unlock(&lock);
 
-  //Prepare the two sub-lists
+  //Prepare the two sub-lists with the new struct
   lArray.a = a;
   lArray.first = first;
   lArray.last = right-1;
   rArray.a = a;
   rArray.first = right + 1;
   rArray.last = last;
-  pthread_mutex_lock(&thready);
-  printf("Hello, I am thread nr.%d\n", ++count);
-  pthread_mutex_unlock(&thready);
+  //pthread_mutex_lock(&thready);
+  //printf("Hello, I am thread nr.%d\n", ++count);
+  //pthread_mutex_unlock(&thready);
   pthread_create(&ltid, NULL, quickSort, (void *) &lArray);
-  printf("quickSort\n");
+  //printf("quickSort\n");
   quickSort((void *) &rArray);
   pthread_join(ltid, NULL);
-  printf("join\n");
+  //printf("join\n");
 }
