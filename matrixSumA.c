@@ -120,6 +120,7 @@ void *Worker(void *arg) {
   /* determine first and last rows of my strip */
   first = myid*stripSize;
   last = (myid == numWorkers - 1) ? (size - 1) : (first + stripSize - 1);
+  //if last worker, you work up to the last strip
 
   /* sum values in my strip */
   total = 0;
@@ -132,17 +133,19 @@ void *Worker(void *arg) {
   for (i = first; i <= last; i++)
     for (j = 0; j < size; j++){
       total += matrix[i][j];
-      if (maxValue < matrix[i][j]){
+      if (maxValue < matrix[i][j]){ //If it is biggger than the current value, add it
         maxValue = matrix[i][j];
         maxi = i;
         maxj = j;
       }
-      if (minValue > matrix[i][j]){
+      if (minValue > matrix[i][j]){ //If it is smaller, take the element
         minValue = matrix[i][j];
         mini = i;
         minj = j;
       }
   }
+  //We now add the max and min values to a global list for this thread.
+  //We also add the sum for this thread.
   maxValues[myid] = maxValue;
   maxIndexesi[myid] = maxi;
   maxIndexesj[myid] = maxj;
@@ -150,12 +153,13 @@ void *Worker(void *arg) {
   minIndexesi[myid] = mini;
   minIndexesj[myid] = minj;
   sums[myid] = total;
-  Barrier();
-  if (myid == 0) {
+  Barrier(); //When all threads are finished
+  if (myid == 0) { //Thread 0 does this work, not parallel
     total = 0;
     maxValue = maxValues[0];
     minValue = minValues[0];
 
+    //Go through the threads and add the biggest and smallest values
     for (i = 0; i < numWorkers; i++) {
       total += sums[i];
       if (maxValue < maxValues[i]){
