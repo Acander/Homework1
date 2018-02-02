@@ -95,7 +95,7 @@ int main(int argc, char *argv[]) {
   for (l = 0; l < numWorkers; l++)
     pthread_create(&workerid[l], &attr, Worker, (void *) l);
   for (i = 0; i < numWorkers; i++)
-    pthread_join(workerid[i], NULL);
+    pthread_join(workerid[i], NULL); //Join all working threads when their finished
 
     /* get end time */
   end_time = read_timer();
@@ -144,13 +144,16 @@ void *Worker(void *arg) {
         minj = j;
       }
   }
+
+    //All threads add their sum, min and max induvidally
+    //global variables locked with mutexes
     pthread_mutex_lock(&sumLock);
       globalSum += total;
     pthread_mutex_unlock(&sumLock);
 
-    if (maxValue > globalMax) {
+    if (maxValue > globalMax) { //Check if mutex is worth unlocking
       pthread_mutex_lock(&maxLock);
-      if (maxValue > globalMax){
+      if (maxValue > globalMax){ //Check if value has changed during unlocking
           globalMax = maxValue;
           globalMaxi = maxi;
           globalMaxj = maxj;

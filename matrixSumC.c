@@ -43,7 +43,7 @@ int size;
 pthread_mutex_t sumLock, maxLock, minLock, bagLock;
 int globalSum, globalMax, globalMaxi, globalMaxj, globalMin, globalMini, globalMinj;
 int matrix[MAXSIZE][MAXSIZE]; /* matrix */
-int bagOfTasks;
+int bagOfTasks; /* A bag of tasks from which the threads will pull rows from*/
 
 void *Worker(void *);
 
