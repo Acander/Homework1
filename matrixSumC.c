@@ -130,6 +130,9 @@ void *Worker(void *arg) {
   minj = 0;
 
   while (!done) {
+    /* Grab the next row from the bag of tasks. Every
+    thread work as much as they can, unlike spliting up the work
+    before running*/
     pthread_mutex_lock(&bagLock);
       task = bagOfTasks++;
     pthread_mutex_unlock(&bagLock);
