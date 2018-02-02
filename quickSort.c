@@ -18,7 +18,7 @@
 #include <stdbool.h>
 #include <time.h>
 #include <sys/time.h>
-#define MAXELEMENTS 50
+#define MAXELEMENTS 200
 
 typedef struct {
   int* a;
@@ -42,7 +42,8 @@ double read_timer() {
 
 double start_time, end_time; /* start and end times */
 int arrayOfElements[MAXELEMENTS];
-pthread_mutex_t lock;
+int count;
+pthread_mutex_t lock, thready;
 
 void* quickSort(void *);
 
@@ -53,6 +54,7 @@ int main(int argc, char *argv[]) {
   structArray list;
 
   l = MAXELEMENTS;
+  count = 0;
 
   for(i = 0; i < l; i++){
     arrayOfElements[i] = rand()%1000;
@@ -60,36 +62,35 @@ int main(int argc, char *argv[]) {
 
   #ifdef DEBUG
     printf("initial array/vector: \n");
-    printf("[");
+    printf("[ ");
     for(i = 0; i < l; i++){
-      printf("%d, ", arrayOfElements[i]);
+      printf("%d ", arrayOfElements[i]);
     }
     printf("]");
   #endif
 
-  //list.a = &arrayOfElements[0];
-  list.last = MAXELEMENTS - 1;
+  list.last = l - 1;
   list.first = 0;
   list.a = &arrayOfElements[0];
 
   pthread_mutex_init(&lock, NULL);
+  pthread_mutex_init(&thready, NULL);
 
   start_time = read_timer();
-  printf("Quicksort\n");
   quickSort((void*) &list);
   end_time = read_timer();
   #ifdef DEBUG
-    printf("sorted array/vector: \n");
-    printf("[");
-    for(i = 0; i < l; i++){
-      printf("%d, ", arrayOfElements[i]);
+    printf("\nSorted array: \n");
+    printf("[ ");
+    for(i = 0; i < l; i++) {
+      printf("%d ", arrayOfElements[i]);
     }
-    printf("]");
+    printf("]\n\n");
   #endif
   printf("The execution time is %g sec\n", end_time - start_time);
 }
 
-void * quickSort(void *array) {
+void* quickSort(void *array) {
   structArray lArray, rArray;
   pthread_t ltid;
   int pivot, i_pivot, first, last, right, left, temp, *a;
@@ -121,6 +122,7 @@ void * quickSort(void *array) {
     else {
       left++;
     }
+  }
 
   //Place the pivot in its correct place (in the global array)
   pthread_mutex_lock(&lock);
@@ -136,10 +138,12 @@ void * quickSort(void *array) {
   rArray.a = a;
   rArray.first = right + 1;
   rArray.last = last;
-  printf("New Thread\n");
+  pthread_mutex_lock(&thready);
+  printf("Hello, I am thread nr.%d\n", ++count);
+  pthread_mutex_unlock(&thready);
   pthread_create(&ltid, NULL, quickSort, (void *) &lArray);
+  printf("quickSort\n");
   quickSort((void *) &rArray);
   pthread_join(ltid, NULL);
-
-  }
+  printf("join\n");
 }
